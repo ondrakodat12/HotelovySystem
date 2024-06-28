@@ -9,12 +9,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class UserDAO {
+
+    static final String URL = "jdbc:mysql://localhost:3306/DTuzivatele";
+    static final String USER = "root";
+    static final String PASSWORD = "ZSsazava12";
+
     private final String url;
     private final String dbUser;
     private final String dbPassword;
- static final String URL = "jdbc:mysql://localhost:3306/DTuzivatele";
-    static final String USER = "root";
-    static final String PASSWORD = "ZSsazava12";
+
     public UserDAO(String url, String user, String password) {
         this.url = url;
         this.dbUser = user;

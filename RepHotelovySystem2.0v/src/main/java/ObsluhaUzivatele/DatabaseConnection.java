@@ -157,53 +157,56 @@ public class DatabaseConnection {
     }
 
     private void bookRoom() {
-        try (Connection conn = DriverManager.getConnection(UserDAO.URL, UserDAO.USER, UserDAO.PASSWORD)) {
-            String email = Main.loggedInUserEmail;
+    try (Connection conn = DriverManager.getConnection(UserDAO.URL, UserDAO.USER, UserDAO.PASSWORD)) {
+        String email = Main.loggedInUserEmail;
 
-            String getUserIdQuery = "SELECT id FROM users WHERE email = ?";
-            PreparedStatement getUserIdStmt = conn.prepareStatement(getUserIdQuery);
-            getUserIdStmt.setString(1, email);
-            ResultSet userRs = getUserIdStmt.executeQuery();
+        String getUserIdQuery = "SELECT id FROM users WHERE email = ?";
+        PreparedStatement getUserIdStmt = conn.prepareStatement(getUserIdQuery);
+        getUserIdStmt.setString(1, email);
+        ResultSet userRs = getUserIdStmt.executeQuery();
 
-            if (userRs.next()) {
-                int userId = userRs.getInt("id");
+        if (userRs.next()) {
+            int userId = userRs.getInt("id");
 
-                System.out.println("Dostupné typy pokojů:");
-                viewAvailableRooms();
+            System.out.print("Zadejte ID pokoje pro rezervaci: ");
+            int roomId = scanner.nextInt();
+            scanner.nextLine();  // Consume newline
 
-                System.out.print("Vyberte ID pokoje pro rezervaci: ");
-                int roomId = scanner.nextInt();
-                scanner.nextLine();  // Consume newline
+            String checkAvailability = "SELECT is_available FROM rooms WHERE id = ?";
+            PreparedStatement checkStmt = conn.prepareStatement(checkAvailability);
+            checkStmt.setInt(1, roomId);
+            ResultSet rs = checkStmt.executeQuery();
 
-                String checkAvailability = "SELECT is_available FROM rooms WHERE id = ?";
-                PreparedStatement checkStmt = conn.prepareStatement(checkAvailability);
-                checkStmt.setInt(1, roomId);
-                ResultSet rs = checkStmt.executeQuery();
+            if (rs.next() && rs.getBoolean("is_available")) {
+                String bookRoom = "INSERT INTO bookings (user_id, room_id, booking_date) VALUES (?, ?, ?)";
+                PreparedStatement bookStmt = conn.prepareStatement(bookRoom);
+                bookStmt.setInt(1, userId);
+                bookStmt.setInt(2, roomId);
+                bookStmt.setDate(3, new java.sql.Date(System.currentTimeMillis()));
+                bookStmt.executeUpdate();
 
-                if (rs.next() && rs.getBoolean("is_available")) {
-                    String bookRoom = "INSERT INTO bookings (user_id, room_id, booking_date) VALUES (?, ?, ?)";
-                    PreparedStatement bookStmt = conn.prepareStatement(bookRoom);
-                    bookStmt.setInt(1, userId);
-                    bookStmt.setInt(2, roomId);
-                    bookStmt.setDate(3, new java.sql.Date(System.currentTimeMillis()));
-                    bookStmt.executeUpdate();
+                String updateRoom = "UPDATE rooms SET is_available = FALSE WHERE id = ?";
+                PreparedStatement updateStmt = conn.prepareStatement(updateRoom);
+                updateStmt.setInt(1, roomId);
+                updateStmt.executeUpdate();
 
-                    String updateRoom = "UPDATE rooms SET is_available = FALSE WHERE id = ?";
-                    PreparedStatement updateStmt = conn.prepareStatement(updateRoom);
-                    updateStmt.setInt(1, roomId);
-                    updateStmt.executeUpdate();
+                System.out.println("Pokoj byl úspěšně zarezervován!");
 
-                    System.out.println("Pokoj byl úspěšně zarezervován!");
-                } else {
-                    System.out.println("Pokoj není k dispozici.");
-                }
+                // Odeslání emailové notifikace
+                String subject = "Potvrzení rezervace pokoje";
+                String body = "Vaše rezervace pokoje s ID " + roomId + " byla úspěšně vytvořena.";
+                EmailSender.sendEmail(email, subject, body);
             } else {
-                System.out.println("Uživatel s tímto emailem nebyl nalezen.");
+                System.out.println("Pokoj není k dispozici.");
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } else {
+            System.out.println("Uživatel s tímto emailem nebyl nalezen.");
         }
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+}
+
 
     private void viewAvailableRooms() {
         try (Connection conn = DriverManager.getConnection(UserDAO.URL, UserDAO.USER, UserDAO.PASSWORD)) {
