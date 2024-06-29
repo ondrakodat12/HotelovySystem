@@ -5,15 +5,81 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class DatabaseConnection {
+
     private UserDAO userDAO;
     private Scanner scanner;
 
     public DatabaseConnection(String url, String username, String password) {
         this.userDAO = new UserDAO(url, username, password);
         this.scanner = new Scanner(System.in);
+    }
+
+    private void VyberUzivatelskychMoznosti() {
+        System.out.println("Vyberte možnost:");
+        System.out.println("1 - Odhlášení");
+        System.out.println("2 - Změna hesla");
+        System.out.println("3 - Smazání účtu");
+        System.out.println("4 - Hlavni Nabidka");
+        int choice = scanner.nextInt();
+        scanner.nextLine();  // Consume newline
+        switch (choice) {
+            case 1:
+                logoutUser();
+                break;
+            case 2:
+                deleteUser();
+                break;
+            case 3:
+                 changePassword();
+                 VyberUzivatelskychMoznosti();
+                break;
+            case 4:
+                return;
+            default:
+                System.out.println("Neplatná volba.");
+                break;
+        }
+
+    }
+
+    private void VyberHotelovychMoznosti() {
+        System.out.println("Vyberte možnost:");
+        System.out.println("1 - Provest rezervaci");
+        System.out.println("2 - Zobrazit dostupne pokoje");
+        System.out.println("3 - Zobraz detaily pokoje");
+        System.out.println("4 - Zobrazit rezervace a zrušit");
+        System.out.println("5 - Hlavni nabidka");
+
+        int choice = scanner.nextInt();
+        scanner.nextLine();  // Consume newline
+        switch (choice) {
+            case 1:
+                bookRoom();
+                VyberHotelovychMoznosti();
+                break;
+            case 2:
+                viewAvailableRooms();
+                VyberHotelovychMoznosti();
+                break;
+            case 3:
+                viewRoomDetails();
+                VyberHotelovychMoznosti();
+                break;
+            case 4:
+                showAndCancelBookings();
+                VyberHotelovychMoznosti();
+                break;
+            case 5: 
+                return;
+
+            default:
+                System.out.println("Neplatná volba.");
+                break;
+        }
     }
 
     public void run() {
@@ -25,64 +91,52 @@ public class DatabaseConnection {
                 System.out.println("2 - Registrace");
                 System.out.println("3 - Ukončit");
 
-                int choice = scanner.nextInt();
-                scanner.nextLine();  // Consume newline
+                try {
+                    int choice = scanner.nextInt();
+                    scanner.nextLine();  // Consume newline
 
-                switch (choice) {
-                    case 1:
-                        loginUser();
-                        break;
-                    case 2:
-                        registerUser();
-                        break;
-                    case 3:
-                        isRunning = false;
-                        System.out.println("Program byl ukončen.");
-                        break;
-                    default:
-                        System.out.println("Neplatná volba.");
-                        break;
+                    switch (choice) {
+                        case 1:
+                            loginUser();
+                            break;
+                        case 2:
+                            registerUser();
+                            break;
+                        case 3:
+                            isRunning = false;
+                            System.out.println("Program byl ukončen.");
+                            break;
+                        default:
+                            System.out.println("Neplatná volba.");
+                            break;
+                    }
+                } catch (InputMismatchException e) {
+                    System.out.println("Neplatný vstup. Zadejte prosím číslo.");
+                    scanner.nextLine();  // Clear invalid input
                 }
             } else {
                 System.out.println("Vyberte možnost:");
-                System.out.println("4 - Odhlášení");
-                System.out.println("5 - Změna hesla");
-                System.out.println("6 - Smazání účtu");
-                System.out.println("7 - Provest rezervaci");
-                System.out.println("8 - Zobrazit dostupne pokoje");
-                System.out.println("9 - Zobraz detaily pokoje");
-                System.out.println("10 - Zobrazit rezervace a zrušit");
-                
+                System.out.println("1 - Moznosti uzivatele");
+                System.out.println("2 - Moznosti hetelu");
 
-                int choice = scanner.nextInt();
-                scanner.nextLine();  // Consume newline
+                try {
+                    int choice = scanner.nextInt();
+                    scanner.nextLine();  // Consume newline
 
-                switch (choice) {
-                    case 4:
-                        logoutUser();
-                        break;
-                    case 5:
-                        changePassword();
-                        break;
-                    case 6:
-                        deleteUser();
-                        break;
-                    case 7:
-                        bookRoom();
-                        break;
-                    case 8:
-                        viewAvailableRooms();
-                        break;
-                    case 9:
-                        viewRoomDetails();
-                        break;
-                    case 10:
-                        showAndCancelBookings();
-                        break;
-                    
-                    default:
-                        System.out.println("Neplatná volba.");
-                        break;
+                    switch (choice) {
+                        case 1:
+                            VyberUzivatelskychMoznosti();
+                            break;
+                        case 2:
+                            VyberHotelovychMoznosti();
+                            break;
+                        default:
+                            System.out.println("Neplatná volba.");
+                            break;
+                    }
+                } catch (InputMismatchException e) {
+                    System.out.println("Neplatný vstup. Zadejte prosím číslo.");
+                    scanner.nextLine();  // Clear invalid input
                 }
             }
         }
@@ -157,62 +211,61 @@ public class DatabaseConnection {
     }
 
     private void bookRoom() {
-    try (Connection conn = DriverManager.getConnection(UserDAO.URL, UserDAO.USER, UserDAO.PASSWORD)) {
-        String email = Main.loggedInUserEmail;
+        try (Connection conn = DriverManager.getConnection(UserDAO.URL, UserDAO.USER, UserDAO.PASSWORD)) {
+            String email = Main.loggedInUserEmail;
 
-        String getUserIdQuery = "SELECT id FROM users WHERE email = ?";
-        PreparedStatement getUserIdStmt = conn.prepareStatement(getUserIdQuery);
-        getUserIdStmt.setString(1, email);
-        ResultSet userRs = getUserIdStmt.executeQuery();
+            String getUserIdQuery = "SELECT id FROM users WHERE email = ?";
+            PreparedStatement getUserIdStmt = conn.prepareStatement(getUserIdQuery);
+            getUserIdStmt.setString(1, email);
+            ResultSet userRs = getUserIdStmt.executeQuery();
 
-        if (userRs.next()) {
-            int userId = userRs.getInt("id");
+            if (userRs.next()) {
+                int userId = userRs.getInt("id");
 
-            System.out.print("Zadejte ID pokoje pro rezervaci: ");
-            int roomId = scanner.nextInt();
-            scanner.nextLine();  // Consume newline
+                System.out.print("Zadejte ID pokoje pro rezervaci: ");
+                int roomId = scanner.nextInt();
+                scanner.nextLine();  // Consume newline
 
-            String checkAvailability = "SELECT is_available FROM rooms WHERE id = ?";
-            PreparedStatement checkStmt = conn.prepareStatement(checkAvailability);
-            checkStmt.setInt(1, roomId);
-            ResultSet rs = checkStmt.executeQuery();
+                String checkAvailability = "SELECT is_available FROM rooms WHERE id = ?";
+                PreparedStatement checkStmt = conn.prepareStatement(checkAvailability);
+                checkStmt.setInt(1, roomId);
+                ResultSet rs = checkStmt.executeQuery();
 
-            if (rs.next() && rs.getBoolean("is_available")) {
-                String bookRoom = "INSERT INTO bookings (user_id, room_id, booking_date) VALUES (?, ?, ?)";
-                PreparedStatement bookStmt = conn.prepareStatement(bookRoom);
-                bookStmt.setInt(1, userId);
-                bookStmt.setInt(2, roomId);
-                bookStmt.setDate(3, new java.sql.Date(System.currentTimeMillis()));
-                bookStmt.executeUpdate();
+                if (rs.next() && rs.getBoolean("is_available")) {
+                    String bookRoom = "INSERT INTO bookings (user_id, room_id, booking_date) VALUES (?, ?, ?)";
+                    PreparedStatement bookStmt = conn.prepareStatement(bookRoom);
+                    bookStmt.setInt(1, userId);
+                    bookStmt.setInt(2, roomId);
+                    bookStmt.setDate(3, new java.sql.Date(System.currentTimeMillis()));
+                    bookStmt.executeUpdate();
 
-                String updateRoom = "UPDATE rooms SET is_available = FALSE WHERE id = ?";
-                PreparedStatement updateStmt = conn.prepareStatement(updateRoom);
-                updateStmt.setInt(1, roomId);
-                updateStmt.executeUpdate();
+                    String updateRoom = "UPDATE rooms SET is_available = FALSE WHERE id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateRoom);
+                    updateStmt.setInt(1, roomId);
+                    updateStmt.executeUpdate();
 
-                System.out.println("Pokoj byl úspěšně zarezervován!");
+                    System.out.println("Pokoj byl úspěšně zarezervován!");
 
-                // Odeslání emailové notifikace
-                String subject = "Potvrzení rezervace pokoje";
-                String body = "Vaše rezervace pokoje s ID " + roomId + " byla úspěšně vytvořena.";
-                EmailSender.sendEmail(email, subject, body);
+                    // Odeslání emailové notifikace
+                    String subject = "Potvrzení rezervace pokoje";
+                    String body = "Vaše rezervace pokoje s ID " + roomId + " byla úspěšně vytvořena.";
+                    EmailSender.sendEmail(email, subject, body);
+                } else {
+                    System.out.println("Pokoj není k dispozici.");
+                }
             } else {
-                System.out.println("Pokoj není k dispozici.");
+                System.out.println("Uživatel s tímto emailem nebyl nalezen.");
             }
-        } else {
-            System.out.println("Uživatel s tímto emailem nebyl nalezen.");
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-    } catch (SQLException e) {
-        e.printStackTrace();
     }
-}
-
 
     private void viewAvailableRooms() {
         try (Connection conn = DriverManager.getConnection(UserDAO.URL, UserDAO.USER, UserDAO.PASSWORD)) {
-            String query = "SELECT rooms.id, room_types.name FROM rooms " +
-                    "JOIN room_types ON rooms.type_id = room_types.id " +
-                    "WHERE rooms.is_available = TRUE";
+            String query = "SELECT rooms.id, room_types.name FROM rooms "
+                    + "JOIN room_types ON rooms.type_id = room_types.id "
+                    + "WHERE rooms.is_available = TRUE";
             PreparedStatement stmt = conn.prepareStatement(query);
             ResultSet rs = stmt.executeQuery();
 
@@ -304,11 +357,11 @@ public class DatabaseConnection {
             if (userRs.next()) {
                 int userId = userRs.getInt("id");
 
-                String query = "SELECT bookings.id, room_types.name AS room_type, bookings.booking_date " +
-                        "FROM bookings " +
-                        "JOIN rooms ON bookings.room_id = rooms.id " +
-                        "JOIN room_types ON rooms.type_id = room_types.id " +
-                        "WHERE bookings.user_id = ?";
+                String query = "SELECT bookings.id, room_types.name AS room_type, bookings.booking_date "
+                        + "FROM bookings "
+                        + "JOIN rooms ON bookings.room_id = rooms.id "
+                        + "JOIN room_types ON rooms.type_id = room_types.id "
+                        + "WHERE bookings.user_id = ?";
                 PreparedStatement stmt = conn.prepareStatement(query);
                 stmt.setInt(1, userId);
                 ResultSet rs = stmt.executeQuery();
