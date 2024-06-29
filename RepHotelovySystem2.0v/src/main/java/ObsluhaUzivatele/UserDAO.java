@@ -7,6 +7,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 public class UserDAO {
 
@@ -25,12 +26,24 @@ public class UserDAO {
     }
 
     // Metoda pro ověření přihlášení uživatele
-    public boolean loginUser(String email, String heslo) {
+     public boolean loginUser(String email, String heslo) {
+        if (isAccountBlocked(email)) {
+            System.out.println("Účet je zablokován. Zkuste to znovu po 30 minutách.");
+            return false;
+        }
+
         String hashedPassword = getHashedPasswordByEmail(email);
         if (hashedPassword != null && BCrypt.checkpw(heslo, hashedPassword)) {
+            clearLoginAttempts(email); // Vymažeme neúspěšné pokusy po úspěšném přihlášení
             return true;
+        } else {
+            recordLoginAttempt(email); // Zaznamenáme neúspěšný pokus
+            int attempts = countInvalidLoginAttempts(email);
+            if (attempts >= 5) {
+                blockAccount(email); // Pokud je 5 neplatných pokusů, zablokujeme účet na 30 minut
+            }
+            return false;
         }
-        return false;
     }
 
     // Metoda pro získání hashovaného hesla podle emailu
@@ -113,4 +126,75 @@ public class UserDAO {
             e.printStackTrace();
         }
     }
+    
+     public void recordLoginAttempt(String email) {
+        try (Connection connection = DriverManager.getConnection(url, dbUser, dbPassword)) {
+            String query = "INSERT INTO login_attempts (email) VALUES (?)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, email);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+     
+     public int countInvalidLoginAttempts(String email) {
+        try (Connection connection = DriverManager.getConnection(url, dbUser, dbPassword)) {
+            String query = "SELECT COUNT(*) AS attempts FROM login_attempts WHERE email = ? AND attempt_time >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, email);
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                return resultSet.getInt("attempts");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+     
+     public void blockAccount(String email) {
+        try (Connection connection = DriverManager.getConnection(url, dbUser, dbPassword)) {
+            String query = "UPDATE users SET blocked_until = DATE_ADD(NOW(), INTERVAL 30 MINUTE) WHERE email = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, email);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+     
+     // Metoda pro kontrolu, zda je účet zablokován
+    private boolean isAccountBlocked(String email) {
+        try (Connection connection = DriverManager.getConnection(url, dbUser, dbPassword)) {
+            String query = "SELECT blocked_until FROM users WHERE email = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, email);
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                Timestamp blockedUntil = resultSet.getTimestamp("blocked_until");
+                if (blockedUntil != null && blockedUntil.after(new Timestamp(System.currentTimeMillis()))) {
+                    return true; // Účet je zablokován
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // Metoda pro vymazání neúspěšných pokusů o přihlášení po úspěšném přihlášení
+    private void clearLoginAttempts(String email) {
+        try (Connection connection = DriverManager.getConnection(url, dbUser, dbPassword)) {
+            String query = "DELETE FROM login_attempts WHERE email = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, email);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+     
+    
+    
 }

@@ -12,7 +12,7 @@ import javax.mail.internet.MimeMessage;
 public class EmailSender {
     private static final String USERNAME = "hotel.system.booking@gmail.com";
     private static final String PASSWORD = "bxlq taws xixd nmks";
-   //metoda pro odesilani emailu pri potvrzeni rezervace
+
     public static void sendEmail(String toEmail, String subject, String body) {
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
@@ -38,5 +38,13 @@ public class EmailSender {
         } catch (MessagingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    // Metoda pro odeslání registračního kódu na email
+    public static void sendRegistrationCode(String toEmail, String code) {
+        String subject = "Registrace do systému";
+        String body = "Váš registrační kód je: " + code;
+
+        sendEmail(toEmail, subject, body);
     }
 }

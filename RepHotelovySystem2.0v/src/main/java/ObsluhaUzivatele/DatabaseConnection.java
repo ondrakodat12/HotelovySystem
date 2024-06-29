@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.InputMismatchException;
+import java.util.Random;
 import java.util.Scanner;
 
 public class DatabaseConnection {
@@ -31,11 +32,12 @@ public class DatabaseConnection {
                 logoutUser();
                 break;
             case 2:
-                deleteUser();
+               changePassword();
+                 VyberUzivatelskychMoznosti();
                 break;
             case 3:
-                 changePassword();
-                 VyberUzivatelskychMoznosti();
+                deleteUser();
+                 
                 break;
             case 4:
                 return;
@@ -160,37 +162,60 @@ public class DatabaseConnection {
     }
 
     private void registerUser() {
-        System.out.println("Vítejte v registraci, bude potřeba zadat následující: jméno, přijmení, email, heslo, telefonní číslo");
-        System.out.print("Přejete si pokračovat? (y/n): ");
-        String pokracovat = scanner.nextLine().toLowerCase().trim();
+    System.out.println("Vítejte v registraci, bude potřeba zadat následující: jméno, příjmení, email, heslo, telefonní číslo");
+    System.out.print("Přejete si pokračovat? (y/n): ");
+    String pokracovat = scanner.nextLine().toLowerCase().trim();
 
-        if (pokracovat.equals("y")) {
-            System.out.print("Zadejte jméno: ");
-            String jmeno = scanner.nextLine();
-            System.out.print("Zadejte přijmení: ");
-            String prijmeni = scanner.nextLine();
-            String email;
-            do {
-                System.out.print("Zadejte email: ");
-                email = scanner.nextLine();
-                if (!isValidEmail(email)) {
-                    System.out.println("Neplatný formát emailu. Zadejte platný email.");
-                }
-            } while (!isValidEmail(email));
+    if (pokracovat.equals("y")) {
+        System.out.print("Zadejte jméno: ");
+        String jmeno = scanner.nextLine();
+        System.out.print("Zadejte příjmení: ");
+        String prijmeni = scanner.nextLine();
+        String email;
+        do {
+            System.out.print("Zadejte email: ");
+            email = scanner.nextLine();
+            if (!isValidEmail(email)) {
+                System.out.println("Neplatný formát emailu. Zadejte platný email.");
+            }
+        } while (!isValidEmail(email));
 
-            System.out.print("Zadejte heslo: ");
-            String heslo = scanner.nextLine();
+        System.out.print("Zadejte heslo: ");
+        String heslo = scanner.nextLine();
 
-            System.out.print("Zadejte telefonní číslo: ");
-            String telefonniCislo = scanner.nextLine();
+        System.out.print("Zadejte telefonní číslo: ");
+        String telefonniCislo = scanner.nextLine();
 
+        // Generování registračního kódu
+        String registracniKod = generateRegistrationCode();
+
+        // Odeslání registračního kódu na zadaný email
+        EmailSender.sendRegistrationCode(email, registracniKod);
+        
+        System.out.println("Registracni kod byl odeslan na vas email. Zadejte ho pro dokonceni registrace.");
+
+        // Očekávání a ověření registračního kódu
+        System.out.print("Zadejte registracní kód: ");
+        String zadanyKod = scanner.nextLine();
+
+        if (zadanyKod.equals(registracniKod)) {
             User user = new User(jmeno, prijmeni, email, heslo, telefonniCislo);
             userDAO.addUser(user);
             System.out.println("Registrace byla úspěšná!");
         } else {
-            System.out.println("Registrace byla zrušena.");
+            System.out.println("Nesprávný registracní kod. Registrace selhala.");
         }
+    } else {
+        System.out.println("Registrace byla zrušena.");
     }
+}
+    
+    private String generateRegistrationCode() {
+    // Generování náhodného registračního kódu
+    Random random = new Random();
+    int randomNumber = random.nextInt(900000) + 100000; // Generuje kód 6 čísel
+    return String.valueOf(randomNumber);
+}
 
     private void logoutUser() {
         Main.loggedInUserEmail = null;
