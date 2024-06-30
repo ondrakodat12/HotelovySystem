@@ -47,4 +47,12 @@ public class EmailSender {
 
         sendEmail(toEmail, subject, body);
     }
+
+    // Metoda pro odeslání verifikačního kódu pro zapomenuté heslo
+    public static void sendVerificationCode(String toEmail, String code) {
+        String subject = "Obnova hesla - verifikační kód";
+        String body = "Váš verifikační kód pro obnovu hesla je: " + code;
+
+        sendEmail(toEmail, subject, body);
+    }
 }

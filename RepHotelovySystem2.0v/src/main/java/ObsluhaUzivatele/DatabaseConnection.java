@@ -84,14 +84,15 @@ public class DatabaseConnection {
         }
     }
 
-    public void run() {
+     public void run() {
         boolean isRunning = true;
         while (isRunning) {
             if (Main.loggedInUserEmail == null) {
                 System.out.println("Vyberte možnost:");
                 System.out.println("1 - Přihlášení");
                 System.out.println("2 - Registrace");
-                System.out.println("3 - Ukončit");
+                System.out.println("3 - Zapomenute heslo - pracuje se na teto moznosti");
+                System.out.println("4 - Ukončit");
 
                 try {
                     int choice = scanner.nextInt();
@@ -105,6 +106,9 @@ public class DatabaseConnection {
                             registerUser();
                             break;
                         case 3:
+                            forgotPassword();
+                            break;
+                        case 4:
                             isRunning = false;
                             System.out.println("Program byl ukončen.");
                             break;
@@ -454,5 +458,46 @@ public class DatabaseConnection {
     private boolean isValidEmail(String email) {
         // Jednoduchá validace emailu, můžete doplnit podle potřeby
         return email.matches("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}");
+    }
+    
+    
+     private void forgotPassword() {
+        System.out.print("Zadejte email pro obnovu hesla: ");
+        String email = scanner.nextLine();
+
+        // Generování a odeslání verifikačního kódu na email
+        String verificationCode = generateVerificationCode();
+        EmailSender.sendVerificationCode(email, verificationCode);
+
+        System.out.println("Verifikační kód byl odeslán na váš email.");
+
+        // Očekávání a ověření verifikačního kódu
+        System.out.print("Zadejte verifikační kód: ");
+        String enteredCode = scanner.nextLine();
+
+        if (enteredCode.equals(verificationCode)) {
+            // Pokud je kód správný, umožníme změnu hesla
+            System.out.print("Zadejte nové heslo: ");
+            String newPassword = scanner.nextLine();
+            userDAO.changePassword(email, newPassword);
+            System.out.println("Heslo bylo úspěšně změněno.");
+        } else {
+            System.out.println("Nesprávný verifikační kód. Obnova hesla selhala.");
+        }
+    }
+
+    // Metoda pro generování náhodného verifikačního kódu
+    private String generateVerificationCode() {
+        Random random = new Random();
+        int length = 6;
+        StringBuilder sb = new StringBuilder();
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        for (int i = 0; i < length; i++) {
+            int index = random.nextInt(characters.length());
+            sb.append(characters.charAt(index));
+        }
+
+        return sb.toString();
     }
 }

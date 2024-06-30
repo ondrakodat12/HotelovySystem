@@ -8,6 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Random;
+import java.util.Scanner;
 
 public class UserDAO {
 
@@ -18,6 +20,9 @@ public class UserDAO {
     private final String url;
     private final String dbUser;
     private final String dbPassword;
+    
+    private UserDAO userDAO;
+    private Scanner scanner;
 
     public UserDAO(String url, String user, String password) {
         this.url = url;
@@ -194,6 +199,8 @@ public class UserDAO {
             e.printStackTrace();
         }
     }
+    
+    
      
     
     
